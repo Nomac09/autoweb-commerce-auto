@@ -46,6 +46,10 @@ async function callClaude(userContent: any[], system: string): Promise<string> {
 function parseDetailsLocally(text: string): Record<string, any> {
   const result: Record<string, any> = {};
 
+  // Model extraction: if text looks like a car model (no numbers, 2-5 words)
+  const modelMatch = text.match(/^([A-ZÀ-Ö][a-zà-ö]+(?:\s+[A-ZÀ-Öa-zà-ö0-9]+){1,4})$/);
+  if (modelMatch && !text.match(/\d{3,}/)) result.title = modelMatch[1].trim();
+
   // Remove spaces between digits: "4 990" → "4990", "154 000" → "154000"
   const normalized = text.replace(/(\d)\s+(\d)/g, "$1$2").replace(/(\d)\s+(\d)/g, "$1$2");
 
