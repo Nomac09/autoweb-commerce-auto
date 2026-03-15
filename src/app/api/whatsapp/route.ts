@@ -6,18 +6,24 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Session = {
-  step: string;
-  photos: string[];
-  partialData: Record<string, any>;
-  startedAt: number;
-};
-
-const sessions = new Map<string, Session>();
-
 function twilioReply(message: string): NextResponse {
   const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${message}</Message></Response>`;
   return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
+}
+
+async function getSession(id: string) {
+  const { data } = await supabase.from("sessions").select("*").eq("id", id).single();
+  return data ?? { id, photos: [], partial_data: {} };
+}
+
+async function saveSession(id: string, photos: string[], partialData: Record<string, any>) {
+  await supabase.from("sessions").upsert({
+    id, photos, partial_data: partialData, updated_at: new Date().toISOString()
+  });
+}
+
+async function deleteSession(id: string) {
+  await supabase.from("sessions").delete().eq("id", id);
 }
 
 async function fetchTwilioMedia(url: string): Promise<Buffer> {
@@ -42,122 +48,53 @@ async function callClaude(userContent: any[], system: string): Promise<string> {
   return d.content?.[0]?.text ?? "";
 }
 
-// Simple regex-based parser — no Claude needed for basic number extraction
-function parseDetailsLocally(text: string): Record<string, any> {
+function parseLocally(text: string): Record<string, any> {
   const result: Record<string, any> = {};
-
-  // Model extraction: if text looks like a car model (no numbers, 2-5 words)
-  const modelMatch = text.match(/^([A-ZÀ-Ö][a-zà-ö]+(?:\s+[A-ZÀ-Öa-zà-ö0-9]+){1,4})$/);
-  if (modelMatch && !text.match(/\d{3,}/)) result.title = modelMatch[1].trim();
-
-  // Remove spaces between digits: "4 990" → "4990", "154 000" → "154000"
-  const normalized = text.replace(/(\d)\s+(\d)/g, "$1$2").replace(/(\d)\s+(\d)/g, "$1$2");
-
-  // Price: number before/after € symbol or "euros"
-  const priceMatch = normalized.match(/(\d{3,6})\s*€/) ||
-                     normalized.match(/prix\s*:?\s*(\d{3,6})/i) ||
-                     normalized.match(/(\d{3,6})\s*euros?/i);
+  const n = text.replace(/(\d)\s+(\d)/g, "$1$2").replace(/(\d)\s+(\d)/g, "$1$2");
+  const priceMatch = n.match(/(\d{3,6})\s*€/) || n.match(/prix\s*:?\s*(\d{3,6})/i);
   if (priceMatch) result.price = parseInt(priceMatch[1]);
-
-  // KM: number before/after km
-  const kmMatch = normalized.match(/(\d{4,6})\s*km/i) ||
-                  normalized.match(/km\s*:?\s*[\(\[]?(\d{4,6})/i) ||
-                  normalized.match(/kilom[eè]tres?\s*:?\s*(\d{4,6})/i);
+  const kmMatch = n.match(/(\d{4,6})\s*km/i) || n.match(/km\s*[\(\[]?\s*(\d{4,6})/i);
   if (kmMatch) result.km = parseInt(kmMatch[1]);
-
-  // Gearbox
   if (/auto(matique)?/i.test(text)) result.gearbox = "Automatique";
-  else if (/manu(elle)?|mecanique|méca/i.test(text)) result.gearbox = "Manuelle";
-
-  // Color
-  const colors = ["noir","blanc","rouge","bleu","gris","vert","orange","beige","marron","argent","silver","black","white","red","blue","gray","grey"];
+  else if (/manu(elle)?|mécanique|méca/i.test(text)) result.gearbox = "Manuelle";
+  const colors = ["noir","blanc","rouge","bleu","gris","vert","orange","beige","marron","argent"];
   for (const c of colors) {
-    if (new RegExp(`\\b${c}\\b`, "i").test(text)) {
-      result.color = c.charAt(0).toUpperCase() + c.slice(1).toLowerCase();
-      break;
-    }
+    if (new RegExp(`\\b${c}\\b`, "i").test(text)) { result.color = c.charAt(0).toUpperCase() + c.slice(1); break; }
   }
-
-  // Guarantee
-  const garantieMatch = text.match(/garanti[e]?\s*:?\s*(\d+\s*mois)/i);
-  if (garantieMatch) result.guarantee = garantieMatch[1];
-
+  // Extract model if text looks like a car name (starts with capital, no price/km)
+  const modelMatch = text.match(/^([A-ZÀ-Ö][a-zA-ZÀ-öà-ö0-9\s\-\.]{3,40})$/);
+  if (modelMatch && !text.match(/\d{4,}/) && !text.match(/€/)) result.title = text.trim();
   return result;
 }
 
-async function parseDetailsWithClaude(text: string, existing: Record<string, any>): Promise<Record<string, any>> {
-  // First try regex (fast, free, reliable for numbers)
-  const local = parseDetailsLocally(text);
-
-  // If we got both price and km locally, skip Claude
+async function parseWithClaude(text: string): Promise<Record<string, any>> {
+  const local = parseLocally(text);
   if (local.price && local.km) return local;
-
-  // Otherwise ask Claude to help with the rest
   const raw = await callClaude(
-    [{ type: "text", text: `Car dealer message: "${text}"\n\nExtract car details. Return ONLY JSON, no explanation.` }],
-    `Extract car details from this French dealer message. Return ONLY valid JSON.
-
-IMPORTANT: Numbers may have spaces as thousand separators. "4 990" = 4990, "154 000" = 154000.
-
-Return: {
-  "price": number or null (€ amount, e.g. 4990),
-  "km": number or null (kilometers, e.g. 154000),
-  "gearbox": "Manuelle" or "Automatique" or null,
-  "color": string or null,
-  "description": string or null,
-  "features": string array or null,
-  "guarantee": string or null,
-  "equipments": string array or null
-}
-
-Examples:
-- "4990€, 154000km" → {"price":4990,"km":154000}
-- "Prix 4990€" → {"price":4990}
-- "KM (154000km)" → {"km":154000}
-- "boîte auto" → {"gearbox":"Automatique"}
-- "manuelle" → {"gearbox":"Manuelle"}`
+    [{ type: "text", text: `Car dealer message: "${text}"\nExtract: price(€), km, gearbox, color, model name. Return ONLY JSON.` }],
+    `Return ONLY valid JSON: {"price":number|null,"km":number|null,"gearbox":"Manuelle"|"Automatique"|null,"color":string|null,"title":string|null}. Numbers: "4 990"=4990, "154 000"=154000.`
   );
-
-  try {
-    const claude = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    return { ...local, ...claude };
-  } catch {
-    return local;
-  }
+  try { return { ...local, ...JSON.parse(raw.replace(/```json|```/g,"").trim()) }; } catch { return local; }
 }
 
 async function readCarteGrise(buf: Buffer): Promise<Record<string, any>> {
-  const b64 = buf.toString("base64");
   const raw = await callClaude(
-    [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
-     { type: "text", text: "Extract vehicle data from this registration document. Return ONLY valid JSON." }],
-    `Return ONLY a JSON object: { "make": string, "model": string, "year": number, "fuel": "Essence"|"Diesel"|"Hybride"|"Électrique", "power_din": number (ch, convert kW×1.36), "doors": number|null, "color": string|null }. No explanation.`
+    [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: buf.toString("base64") } },
+     { type: "text", text: "Extract vehicle registration data. Return ONLY JSON." }],
+    `Return ONLY JSON: {"make":string,"model":string,"year":number,"fuel":"Essence"|"Diesel"|"Hybride"|"Électrique","power_din":number|null,"doors":number|null,"color":string|null}. No explanation.`
   );
   try {
-    const p = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    return {
-      title: `${p.make ?? ""} ${p.model ?? ""}`.trim(),
-      year: p.year ?? null,
-      fuel: p.fuel ?? "Essence",
-      power_din: p.power_din ? Math.round(p.power_din) : null,
-      doors: p.doors ?? null,
-      color: p.color ?? null,
-    };
+    const p = JSON.parse(raw.replace(/```json|```/g,"").trim());
+    return { title:`${p.make??""} ${p.model??""}`.trim(), year:p.year??null, fuel:p.fuel??"Essence", power_din:p.power_din?Math.round(p.power_din):null, doors:p.doors??null, color:p.color??null };
   } catch { return {}; }
 }
 
-function budgetTag(price: number): string {
-  return price < 2000 ? "< 2000 €" : price <= 4000 ? "2000-4000 €" : "≥ 4000 €";
-}
+function budgetTag(price: number) { return price<2000?"< 2000 €":price<=4000?"2000-4000 €":"≥ 4000 €"; }
 
-async function getStock(): Promise<string> {
-  const { data } = await supabase.from("cars").select("id,title,price,status,km").order("added_at", { ascending: false });
+async function getStock() {
+  const { data } = await supabase.from("cars").select("id,title,price,status").order("added_at",{ascending:false});
   if (!data?.length) return "📦 Stock vide.";
-  const lines = data.map(c => {
-    const icon = c.status === "available" ? "✅" : c.status === "reserved" ? "🟡" : "❌";
-    return `${icon} ${c.title} — ${c.price.toLocaleString("fr-FR")}€\nID: ${c.id}`;
-  });
-  return `📦 *Stock AUTOWEB* (${data.length})\n\n${lines.join("\n\n")}`;
+  return `📦 *Stock AUTOWEB* (${data.length})\n\n${data.map(c=>`${c.status==="available"?"✅":c.status==="reserved"?"🟡":"❌"} ${c.title} — ${c.price.toLocaleString("fr-FR")}€\nID: ${c.id}`).join("\n\n")}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -166,92 +103,97 @@ export async function POST(req: NextRequest) {
   const body   = form.get("Body")?.toString().trim() ?? "";
   const nMedia = parseInt(form.get("NumMedia")?.toString() ?? "0");
   const lower  = body.toLowerCase();
-
-  const owner = process.env.OWNER_WHATSAPP ?? "";
+  const owner  = process.env.OWNER_WHATSAPP ?? "";
   if (owner && !from.includes(owner)) return twilioReply("❌ Non autorisé.");
 
-  if (lower === "stock" || lower === "status") return twilioReply(await getStock());
-  if (lower === "annuler" || lower === "cancel") { sessions.delete(from); return twilioReply("✅ Session annulée."); }
-  if (lower.startsWith("vendu "))    { await supabase.from("cars").update({ status: "sold" }).eq("id", body.slice(6).trim()); return twilioReply("✅ Marquée vendue."); }
-  if (lower.startsWith("réservé ") || lower.startsWith("reserve ")) { await supabase.from("cars").update({ status: "reserved" }).eq("id", body.split(" ").slice(1).join(" ").trim()); return twilioReply("✅ Marquée réservée."); }
-  if (lower.startsWith("dispo "))    { await supabase.from("cars").update({ status: "available" }).eq("id", body.slice(6).trim()); return twilioReply("✅ Remise disponible."); }
-  if (lower.startsWith("supprimer ") || lower.startsWith("delete ")) { await supabase.from("cars").delete().eq("id", body.split(" ").slice(1).join(" ").trim()); return twilioReply("🗑️ Supprimée."); }
+  // Commands
+  if (lower==="stock"||lower==="status") return twilioReply(await getStock());
+  if (lower==="annuler"||lower==="cancel") { await deleteSession(from); return twilioReply("✅ Session annulée."); }
+  if (lower.startsWith("vendu "))    { await supabase.from("cars").update({status:"sold"}).eq("id",body.slice(6).trim()); return twilioReply("✅ Marquée vendue."); }
+  if (lower.startsWith("réservé ")||lower.startsWith("reserve ")) { await supabase.from("cars").update({status:"reserved"}).eq("id",body.split(" ").slice(1).join(" ").trim()); return twilioReply("✅ Marquée réservée."); }
+  if (lower.startsWith("dispo "))    { await supabase.from("cars").update({status:"available"}).eq("id",body.slice(6).trim()); return twilioReply("✅ Remise disponible."); }
+  if (lower.startsWith("supprimer ")||lower.startsWith("delete ")) { await supabase.from("cars").delete().eq("id",body.split(" ").slice(1).join(" ").trim()); return twilioReply("🗑️ Supprimée."); }
 
-  let s = sessions.get(from);
-  if (!s || Date.now() - s.startedAt > 3600000) {
-    s = { step: "idle", photos: [], partialData: {}, startedAt: Date.now() };
-    sessions.set(from, s);
-  }
+  // Load session from Supabase
+  const sess = await getSession(from);
+  let photos: string[] = sess.photos ?? [];
+  let data: Record<string, any> = sess.partial_data ?? {};
 
   // Photos
   if (nMedia > 0) {
     const uploaded: string[] = [];
-    for (let i = 0; i < nMedia; i++) {
-      const url  = form.get(`MediaUrl${i}`)?.toString() ?? "";
-      const type = form.get(`MediaContentType${i}`)?.toString() ?? "";
-      if (!type.startsWith("image/")) continue;
-      const buf  = await fetchTwilioMedia(url);
-      const pub  = await uploadPhoto(buf, `${Date.now()}-${i}.jpg`);
+    for (let i=0; i<nMedia; i++) {
+      const url  = form.get(`MediaUrl${i}`)?.toString()??"";
+      const type = form.get(`MediaContentType${i}`)?.toString()??"";
+      if (!type.startsWith("image/")) {
+        // PDF sent — warn user
+        if (type.includes("pdf")) return twilioReply("⚠️ La carte grise doit être envoyée en *photo* (screenshot), pas en PDF.\n\nFaites une capture d'écran de votre carte grise et envoyez-la.");
+        continue;
+      }
+      const buf = await fetchTwilioMedia(url);
+      const pub = await uploadPhoto(buf, `${Date.now()}-${i}.jpg`);
       if (pub) uploaded.push(pub);
-      if (!s.partialData.year && !s.partialData.title) {
+      // Try carte grise OCR on first image if no title yet
+      if (!data.title) {
         const cg = await readCarteGrise(buf);
-        if (cg.year || cg.title) s.partialData = { ...s.partialData, ...cg };
+        if (cg.title||cg.year) data = { ...data, ...cg };
       }
     }
-    s.photos.push(...uploaded);
-    s.step = "waiting_details";
-    sessions.set(from, s);
-    const d = s.partialData;
-    const detected = (d.title || d.year) ? `\n\n📋 Détecté: *${d.title ?? ""} ${d.year ?? ""}* · ${d.fuel ?? "?"}` : "";
-    return twilioReply(`📸 *${uploaded.length} photo(s)* reçue(s) (total: ${s.photos.length})${detected}\n\nEnvoyez:\n• Prix (ex: 3200€)\n• KM (ex: 87000km)\n• Boîte (auto/manuelle)\n\nTapez *"publier"* quand prêt.`);
+    photos = [...photos, ...uploaded];
+    await saveSession(from, photos, data);
+    const detected = (data.title||data.year) ? `\n\n📋 Détecté: *${data.title??""} ${data.year??""}* · ${data.fuel??"?"}` : "";
+    return twilioReply(`📸 *${uploaded.length} photo(s)* reçue(s) (total: ${photos.length})${detected}\n\nEnvoyez:\n• Prix (ex: 4990€)\n• KM (ex: 154000km)\n• Boîte (auto/manuelle)\n\nTapez *"publier"* quand prêt.`);
   }
 
   // Publish
-  if (lower === "publier" || lower === "publish") {
-    if (s.photos.length === 0) return twilioReply("❌ Pas de photos.");
-    const d = s.partialData;
-    if (!d.price) return twilioReply("❌ Prix manquant. Envoyez: Prix 4990€");
-    if (d.km == null) return twilioReply("❌ KM manquant. Envoyez: KM 154000");
-    if (!d.title) return twilioReply("❌ Modèle manquant. Envoyez: ex Citroën C4");
-    const year = d.year ?? new Date().getFullYear();
-    const features: string[] = d.features ?? [];
-    if (d.guarantee) features.push(`Garantie ${d.guarantee}`);
-    if (!features.some((f: string) => f.toLowerCase().includes("ct"))) features.push("CT OK");
+  if (lower==="publier"||lower==="publish") {
+    if (photos.length===0) return twilioReply("❌ Pas de photos. Envoyez d'abord des photos.");
+    if (!data.price) return twilioReply("❌ Prix manquant. Envoyez: 4990€");
+    if (data.km==null) return twilioReply("❌ KM manquant. Envoyez: 154000km");
+    if (!data.title) return twilioReply("❌ Modèle manquant. Envoyez ex: Citroën C4 1.4 Essence 2011");
+    const year = data.year ?? new Date().getFullYear();
+    const features: string[] = data.features ?? [];
+    if (data.guarantee) features.push(`Garantie ${data.guarantee}`);
+    if (!features.some((f:string)=>f.toLowerCase().includes("ct"))) features.push("CT OK");
     const car = {
-      id: `${(d.title as string).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${year}-${Date.now().toString(36)}`,
-      title: d.title, price: d.price, year, km: d.km,
-      fuel: d.fuel ?? "Essence", gearbox: d.gearbox ?? "Manuelle",
-      images: s.photos,
-      description: d.description ?? `${d.title} ${year}. ${(d.km as number).toLocaleString("fr-FR")} km.`,
-      budget_tag: budgetTag(d.price as number), status: "available",
-      features, color: d.color ?? null, doors: d.doors ?? null,
-      power_din: d.power_din ?? null, co2: d.co2 ?? null,
-      equipments: d.equipments ?? null,
-      added_at: new Date().toISOString(),
+      id: `${(data.title as string).toLowerCase().replace(/[^a-z0-9]+/g,"-")}-${year}-${Date.now().toString(36)}`,
+      title:data.title, price:data.price, year, km:data.km,
+      fuel:data.fuel??"Essence", gearbox:data.gearbox??"Manuelle",
+      images:photos,
+      description:data.description??`${data.title} ${year}. ${(data.km as number).toLocaleString("fr-FR")} km.`,
+      budget_tag:budgetTag(data.price as number), status:"available",
+      features, color:data.color??null, doors:data.doors??null,
+      power_din:data.power_din??null, equipments:data.equipments??null,
+      added_at:new Date().toISOString(),
     };
     const { error } = await supabase.from("cars").insert(car);
     if (error) return twilioReply(`❌ Erreur: ${error.message}`);
-    sessions.delete(from);
-    const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autoweb-commerce-auto.vercel.app";
-    return twilioReply(`✅ *Publiée !*\n\n🚗 ${car.title}\n💰 ${(car.price as number).toLocaleString("fr-FR")} € · ${(car.km as number).toLocaleString("fr-FR")} km\n📸 ${s.photos.length} photo(s)\n\n🔗 ${site}/car/${car.id}`);
+    await deleteSession(from);
+    const site = process.env.NEXT_PUBLIC_SITE_URL??"https://autoweb-commerce-auto.vercel.app";
+    return twilioReply(`✅ *Publiée !*\n\n🚗 ${car.title}\n💰 ${(car.price as number).toLocaleString("fr-FR")} €\n📍 ${(car.km as number).toLocaleString("fr-FR")} km\n📸 ${photos.length} photo(s)\n\n🔗 ${site}/car/${car.id}`);
   }
 
   // Parse text details
-  if (body.length > 0 && s.step === "waiting_details") {
-    const extracted = await parseDetailsWithClaude(body, s.partialData);
-    s.partialData = { ...s.partialData, ...extracted };
-    sessions.set(from, s);
-    const d = s.partialData;
+  if (body.length > 0) {
+    const extracted = await parseWithClaude(body);
+    // Only update fields that were actually extracted
+    if (extracted.price) data.price = extracted.price;
+    if (extracted.km != null) data.km = extracted.km;
+    if (extracted.gearbox) data.gearbox = extracted.gearbox;
+    if (extracted.color) data.color = extracted.color;
+    if (extracted.title && !data.title) data.title = extracted.title;
+    if (extracted.description) data.description = extracted.description;
+    await saveSession(from, photos, data);
     const summary = [
-      d.title   ? `🚗 ${d.title} ${d.year ?? ""}` : null,
-      d.price   ? `💰 ${(d.price as number).toLocaleString("fr-FR")} €` : "❓ Prix manquant",
-      d.km != null ? `📍 ${(d.km as number).toLocaleString("fr-FR")} km` : "❓ KM manquant",
-      d.fuel    ? `⛽ ${d.fuel}`    : null,
-      d.gearbox ? `🕹 ${d.gearbox}` : null,
-      d.color   ? `🎨 ${d.color}`   : null,
+      data.title  ? `🚗 ${data.title} ${data.year??""}` : null,
+      data.price  ? `💰 ${(data.price as number).toLocaleString("fr-FR")} €` : "❓ Prix manquant",
+      data.km!=null?`📍 ${(data.km as number).toLocaleString("fr-FR")} km`:"❓ KM manquant",
+      data.fuel   ? `⛽ ${data.fuel}`    : null,
+      data.gearbox? `🕹 ${data.gearbox}` : null,
+      data.color  ? `🎨 ${data.color}`   : null,
     ].filter(Boolean).join("\n");
-    return twilioReply(`📝 *Récap:*\n${summary}\n📸 ${s.photos.length} photo(s)\n\nAjoutez des détails ou tapez *"publier"*.`);
+    return twilioReply(`📝 *Récap:*\n${summary}\n📸 ${photos.length} photo(s)\n\nAjoutez des détails ou tapez *"publier"*.`);
   }
 
-  return twilioReply(`🚗 *AUTOWEB Agent*\n\n📸 Photos + carte grise pour ajouter une voiture\n\n*Commandes:*\nstock · vendu [id] · réservé [id] · dispo [id] · supprimer [id] · annuler`);
+  return twilioReply(`🚗 *AUTOWEB Agent*\n\n📸 Envoyez photos + screenshot carte grise\n⚠️ Carte grise en *screenshot*, pas en PDF\n\n*Commandes:*\nstock · vendu [id] · réservé [id] · dispo [id] · supprimer [id] · annuler`);
 }
