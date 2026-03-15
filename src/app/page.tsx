@@ -1,10 +1,20 @@
 import Link from "next/link";
-import { getLatestCars, getAvailableCars } from "./data/cars";
+import { createClient } from "@supabase/supabase-js";
 import CarCard from "./components/CarCard";
 
-export default function Home() {
-  const latest    = getLatestCars(6);
-  const available = getAvailableCars();
+export const revalidate = 60;
+
+async function getData() {
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  const [{ data: cars }, { count }] = await Promise.all([
+    sb.from("cars").select("*").eq("status","available").order("added_at",{ascending:false}).limit(6),
+    sb.from("cars").select("*",{count:"exact",head:true}).eq("status","available"),
+  ]);
+  return { cars: cars ?? [], count: count ?? 0 };
+}
+
+export default async function Home() {
+  const { cars, count } = await getData();
   return (
     <>
       <section className="hero">
@@ -22,29 +32,14 @@ export default function Home() {
           </div>
         </div>
         <div className="hero-stats">
-          {[
-            [String(available.length), "En stock"],
-            ["3 mois",  "Garantie"],
-            ["CT OK",   "Contrôle"],
-            ["3/4×",    "Paiement"],
-          ].map(([v, l]) => (
-            <div key={l} className="hero-stat">
-              <div className="hero-stat-v">{v}</div>
-              <div className="hero-stat-l">{l}</div>
-            </div>
+          {[[String(count),"En stock"],["3 mois","Garantie"],["CT OK","Contrôle"],["3/4×","Paiement"]].map(([v,l]) => (
+            <div key={l} className="hero-stat"><div className="hero-stat-v">{v}</div><div className="hero-stat-l">{l}</div></div>
           ))}
         </div>
       </section>
-
       <div className="promise-strip">
         <div className="container promise-inner">
-          {[
-            ["🛡️","Garantie 3 mois","Sur chaque véhicule vendu"],
-            ["✅","CT à jour","Livré contrôle technique OK"],
-            ["💳","Paiement facile","3 ou 4 fois sans frais"],
-            ["📋","Historique complet","Carnet d'entretien fourni"],
-            ["📍","Bondues, Nord","2 Allée de la Mannée"],
-          ].map(([icon, title, sub]) => (
+          {[["🛡️","Garantie 3 mois","Sur chaque véhicule vendu"],["✅","CT à jour","Livré contrôle technique OK"],["💳","Paiement facile","3 ou 4 fois sans frais"],["📋","Historique complet","Carnet d'entretien fourni"],["📍","Bondues, Nord","2 Allée de la Mannée"]].map(([icon,title,sub]) => (
             <div key={title as string} className="promise-item">
               <span className="promise-icon">{icon}</span>
               <div className="promise-text"><strong>{title}</strong><span>{sub}</span></div>
@@ -52,17 +47,18 @@ export default function Home() {
           ))}
         </div>
       </div>
-
       <section className="section section-dark">
         <div className="container">
           <div className="section-head">
-            <p className="section-eyebrow">Stock · Mis à jour quotidiennement</p>
+            <p className="section-eyebrow">Stock · Mis à jour en temps réel</p>
             <h2 className="section-title">Nos dernières occasions</h2>
-            <p className="section-sub">{available.length} véhicule{available.length !== 1 ? "s" : ""} disponible{available.length !== 1 ? "s" : ""}</p>
+            <p className="section-sub">{count} véhicule{count!==1?"s":""} disponible{count!==1?"s":""}</p>
           </div>
-          <div className="cars-grid">
-            {latest.map((car) => <CarCard key={car.id} car={car} />)}
-          </div>
+          {cars.length===0 ? (
+            <div className="empty"><div className="empty-icon">🚗</div><h3>Stock en cours de mise à jour</h3><p>Revenez bientôt ou contactez-nous directement.</p></div>
+          ) : (
+            <div className="cars-grid">{cars.map((car:any) => <CarCard key={car.id} car={car} />)}</div>
+          )}
           <div style={{textAlign:"center",marginTop:"36px"}}>
             <Link href="/stock" className="btn btn-accent btn-lg">Consulter toutes les annonces →</Link>
           </div>
