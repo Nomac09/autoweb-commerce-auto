@@ -147,6 +147,113 @@ export async function POST(req: NextRequest) {
     return twiml(`🗑️ *${id}* supprimée.`);
   }
 
+  // ── MODIFIER [id] [champ] [valeur] ──────────────────────
+  if (lower.startsWith("modifier ") || lower.startsWith("modif ") || lower.startsWith("edit ")) {
+    const parts = body.split(" ");
+    const carId = parts[1]?.trim();
+    const field = parts[2]?.toLowerCase().trim();
+    const value = parts.slice(3).join(" ").trim();
+    if (!carId || !field || !value) {
+      return twiml(
+        `❌ Format: *modifier [id] [champ] [valeur]*\n\n` +
+        `Exemples:\n` +
+        `modifier [id] km 87000\n` +
+        `modifier [id] prix 4500\n` +
+        `modifier [id] année 2011\n` +
+        `modifier [id] modele Citroën C4 1.4 Essence\n` +
+        `modifier [id] carburant Diesel\n` +
+        `modifier [id] boite Automatique\n` +
+        `modifier [id] couleur Gris\n` +
+        `modifier [id] description Voiture révisée, excellent état\n\n` +
+        `Tapez *stock* pour voir les IDs.`
+      );
+    }
+    const fieldMap: Record<string,string> = {
+      km:"km", prix:"price", price:"price",
+      année:"year", annee:"year", year:"year",
+      modele:"title", modèle:"title", title:"title",
+      carburant:"fuel", fuel:"fuel",
+      boite:"gearbox", boîte:"gearbox", gearbox:"gearbox",
+      couleur:"color", color:"color",
+      description:"description",
+      garantie:"guarantee", guarantee:"guarantee",
+    };
+    const dbField = fieldMap[field];
+    if (!dbField) return twiml(`❌ Champ inconnu: *${field}*\nDisponibles: km, prix, année, modele, carburant, boite, couleur, description, garantie`);
+    const numericFields = ["km","price","year"];
+    const dbValue = numericFields.includes(dbField) ? parseInt(value) : value;
+    const updates: Record<string,any> = { [dbField]: dbValue };
+    if (dbField === "price") {
+      const p = parseInt(value);
+      updates.budget_tag = p < 2000 ? "< 2000 €" : p <= 4000 ? "2000-4000 €" : "≥ 4000 €";
+    }
+    const { error: modErr } = await supabase.from("cars").update(updates).eq("id", carId);
+    if (modErr) return twiml(`❌ Erreur: ${modErr.message}`);
+    return twiml(`✅ *${carId}*\n${field} → *${value}*\n\nMis à jour sur le site.`);
+  }
+
+  // ── DÉTAILS [id] [texte] — ajouter équipements/features ─
+  if (lower.startsWith("détails ") || lower.startsWith("details ") || lower.startsWith("equipements ")) {
+    const parts = body.split(" ");
+    const carId = parts[1]?.trim();
+    const detailText = parts.slice(2).join(" ").trim();
+    if (!carId || !detailText) {
+      return twiml(
+        `❌ Format: *détails [id] [texte]*\n\n` +
+        `Exemple:\n` +
+        `détails [id] révision complète, garantie 3 mois, plaquettes neuves, pneus neufs avant\n\n` +
+        `Séparez les éléments par des virgules.\n` +
+        `Tapez *stock* pour voir les IDs.`
+      );
+    }
+    const { data: existing } = await supabase.from("cars").select("features,equipments").eq("id", carId).single();
+    if (!existing) return twiml(`❌ Voiture non trouvée: ${carId}`);
+    const items = detailText.split(",").map((s:string) => s.trim()).filter(Boolean);
+    const existingFeatures: string[] = existing.features ?? [];
+    const existingEquipments: string[] = existing.equipments ?? [];
+    const newFeatures = items.filter((i:string) => i.split(" ").length <= 4);
+    const newEquipments = items.filter((i:string) => i.split(" ").length > 4);
+    const mergedFeatures = [...new Set([...existingFeatures, ...newFeatures])];
+    const mergedEquipments = [...new Set([...existingEquipments, ...newEquipments])];
+    await supabase.from("cars").update({
+      features: mergedFeatures,
+      equipments: mergedEquipments.length > 0 ? mergedEquipments : existingEquipments,
+    }).eq("id", carId);
+    return twiml(
+      `✅ *${carId}* mis à jour\n\n` +
+      `🏷 Features: ${mergedFeatures.join(", ")}\n` +
+      (mergedEquipments.length > 0 ? `🔧 Équipements: ${mergedEquipments.join(", ")}` : "")
+    );
+  }
+
+  // ── PHOTOS [id] — remplacer les photos ──────────────────
+  if (lower.startsWith("photos ") && body.trim().split(" ").length === 2) {
+    const carId = body.slice(7).trim();
+    const { data: existing } = await supabase.from("cars").select("id,title").eq("id", carId).single();
+    if (!existing) return twiml(`❌ Voiture non trouvée: ${carId}`);
+    await saveSession(from, [], { __replace_photos_for: carId, __replace_mode: true });
+    return twiml(
+      `📸 *Mode remplacement photos*\nVoiture: *${existing.title}*\n\n` +
+      `Envoyez les nouvelles photos une par une.\n` +
+      `Tapez *"confirmer"* quand toutes les photos sont envoyées.`
+    );
+  }
+
+  // ── CONFIRMER — valider le remplacement de photos ───────
+  if (lower === "confirmer" || lower === "confirm") {
+    const sessCfm = await getSession(from);
+    if (sessCfm?.partial_data?.__replace_mode && sessCfm?.partial_data?.__replace_photos_for) {
+      const carId = sessCfm.partial_data.__replace_photos_for;
+      const newPhotos = sessCfm.photos ?? [];
+      if (newPhotos.length === 0) return twiml("❌ Aucune photo reçue. Envoyez les photos d'abord.");
+      await supabase.from("cars").update({ images: newPhotos }).eq("id", carId);
+      await deleteSession(from);
+      return twiml(`✅ *${carId}*\n${newPhotos.length} photo(s) remplacée(s) sur le site.`);
+    }
+    return twiml("❌ Rien à confirmer. Utilisez *photos [id]* d'abord.");
+  }
+
+
   // ── START NEW SESSION ────────────────────────────────────
   if (lower === "nouvelle voiture" || lower === "new" || lower === "ajouter") {
     await deleteSession(from);
