@@ -1,50 +1,79 @@
 "use client";
-import { useState } from 'react';
-import { Car, cars } from '../data/cars';
-import Link from 'next/link';
+import { useState, useMemo } from "react";
+import { cars } from "../data/cars";
+import CarCard from "../components/CarCard";
 
-export default function Stock() {
-  const [filters, setFilters] = useState({budget:'', fuel:'', gearbox:''});
+export default function StockPage() {
+  const [search,  setSearch]  = useState("");
+  const [budget,  setBudget]  = useState("");
+  const [fuel,    setFuel]    = useState("");
+  const [gearbox, setGearbox] = useState("");
+  const [status,  setStatus]  = useState("available");
 
-  const filteredCars = cars.filter(car => 
-    (!filters.budget || car.budgetTag === filters.budget) &&
-    (!filters.fuel || car.fuel === filters.fuel) &&
-    (!filters.gearbox || car.gearbox === filters.gearbox)
+  const filtered = useMemo(() =>
+    cars.filter((car) => {
+      if (status !== "all" && car.status !== status) return false;
+      if (budget && car.budgetTag !== budget) return false;
+      if (fuel   && car.fuel    !== fuel)     return false;
+      if (gearbox && car.gearbox !== gearbox) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return car.title.toLowerCase().includes(q) || car.description.toLowerCase().includes(q);
+      }
+      return true;
+    }),
+    [search, budget, fuel, gearbox, status]
   );
 
+  const reset = () => { setSearch(""); setBudget(""); setFuel(""); setGearbox(""); setStatus("available"); };
+  const hasFilters = !!(search || budget || fuel || gearbox || status !== "available");
+
   return (
-    <section className="py-20 px-4 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-16 text-gray-800">Tout notre stock</h1>
-        <div className="grid md:grid-cols-3 gap-4 mb-12 max-w-2xl mx-auto">
-          <select value={filters.budget} onChange={e=>setFilters({...filters, budget:e.target.value})} className="p-3 border rounded-lg">
-            <option value="">Tous budgets</option><option value="< 2000 €">&lt; 2000 €</option><option value="2000-4000 €">2000-4000 €</option><option value="≥ 4000 €">≥ 4000 €</option>
-          </select>
-          <select value={filters.fuel} onChange={e=>setFilters({...filters, fuel:e.target.value})} className="p-3 border rounded-lg">
-            <option value="">Tous carburants</option><option value="Essence">Essence</option><option value="Diesel">Diesel</option>
-          </select>
-          <select value={filters.gearbox} onChange={e=>setFilters({...filters, gearbox:e.target.value})} className="p-3 border rounded-lg">
-            <option value="">Toutes boîtes</option><option value="Manuelle">Manuelle</option><option value="Automatique">Automatique</option>
-          </select>
+    <section className="section">
+      <div className="container">
+        <div className="section-head">
+          <p className="section-eyebrow">Bondues · Livraison possible</p>
+          <h1 className="section-title">Nos annonces</h1>
+          <p className="section-sub">Stock mis à jour quotidiennement</p>
         </div>
-        {filteredCars.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-2xl text-gray-500 mb-4">Aucune voiture</p>
-            <button onClick={()=>setFilters({budget:'',fuel:'',gearbox:''})} className="bg-green-600 text-white py-3 px-6 rounded-lg">Réinitialiser</button>
+        <div className="filters-wrap">
+          <input className="filter-input" placeholder="🔍  Rechercher (Peugeot, Clio…)" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <select className="filter-select" value={budget} onChange={(e) => setBudget(e.target.value)}>
+            <option value="">💰  Tous budgets</option>
+            <option value="< 2000 €">&lt; 2 000 €</option>
+            <option value="2000-4000 €">2 000 – 4 000 €</option>
+            <option value="≥ 4000 €">≥ 4 000 €</option>
+          </select>
+          <select className="filter-select" value={fuel} onChange={(e) => setFuel(e.target.value)}>
+            <option value="">⛽  Carburant</option>
+            <option value="Essence">Essence</option>
+            <option value="Diesel">Diesel</option>
+            <option value="Hybride">Hybride</option>
+            <option value="Électrique">Électrique</option>
+          </select>
+          <select className="filter-select" value={gearbox} onChange={(e) => setGearbox(e.target.value)}>
+            <option value="">🕹  Boîte</option>
+            <option value="Manuelle">Manuelle</option>
+            <option value="Automatique">Automatique</option>
+          </select>
+          <select className="filter-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="available">Disponibles</option>
+            <option value="reserved">Réservées</option>
+            <option value="all">Tous statuts</option>
+          </select>
+          <span className="filters-count">{filtered.length} résultat{filtered.length !== 1 ? "s" : ""}</span>
+          {hasFilters && <button className="btn-reset" onClick={reset}>✕ Effacer</button>}
+        </div>
+        {filtered.length === 0 ? (
+          <div className="empty">
+            <div className="empty-icon">🔍</div>
+            <h3>Aucun résultat</h3>
+            <p style={{marginBottom:"24px"}}>Essayez d&apos;autres filtres ou revenez bientôt.</p>
+            <button className="btn btn-ghost" onClick={reset}>Voir toutes les annonces</button>
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-8">
-            {filteredCars.map((car) => (
-              <div key={car.id} className="bg-white border rounded-xl shadow-sm hover:shadow-md p-6">
-                <div className="h-64 bg-gray-200 rounded-lg overflow-hidden mx-auto mb-4">
-                  <img src={car.images[0]} alt={car.title} className="w-full h-full object-cover"/>
-                </div>
-                <h3 className="font-bold text-xl mb-2">{car.title}</h3>
-                <p className="text-3xl font-black text-green-600">{car.price.toLocaleString()}€</p>
-                <p className="text-sm text-gray-600">{car.year} • {car.km.toLocaleString()}km • {car.fuel}</p>
-                <Link href={`/car/${car.id}`} className="block w-full bg-green-600 text-white py-3 px-6 rounded-lg text-center mt-4">Voir détails</Link>
-              </div>
-            ))}
+          <div className="cars-grid">
+            {filtered.map((car) => <CarCard key={car.id} car={car} />)}
           </div>
         )}
       </div>

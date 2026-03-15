@@ -1,38 +1,70 @@
-import { cars } from './data/cars';
-import Link from 'next/link';
-
-const latestCars = cars.slice(0, 3);
+import Link from "next/link";
+import { getLatestCars, getAvailableCars } from "./data/cars";
+import CarCard from "./components/CarCard";
 
 export default function Home() {
+  const latest    = getLatestCars(6);
+  const available = getAvailableCars();
   return (
     <>
-      <section className="bg-gradient-to-r from-green-600 to-emerald-700 text-white py-32 px-4 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-            Voiture à petit prix<br/><span className="text-4xl md:text-6xl">selon votre budget</span>
-          </h1>
-          <p className="text-2xl mb-8">Même <span className="font-bold">&lt;2000€</span>.<br/>Dès 4000€ facilités 3/4 fois + <span className="font-bold">garantie 3 mois</span></p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/stock" className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg">Voir le stock complet</Link>
-            <Link href="/contact" className="border-2 border-white text-white hover:bg-white hover:text-green-600 font-bold py-4 px-8 rounded-lg">Contact</Link>
+      <section className="hero">
+        <div className="hero-img-wrap">
+          <div className="hero-bg-fallback">🚗</div>
+          <div className="hero-overlay" />
+          <div className="hero-content">
+            <span className="hero-tag">Bondues · Nord</span>
+            <h1 className="hero-title">Voitures<br />d&apos;occasion<br /><span>à petit prix</span></h1>
+            <p className="hero-sub">Dès <strong style={{color:"#fff"}}>1 900 €</strong> · Garantie 3 mois · CT OK · Paiement 3/4 fois dès 4 000 €</p>
+            <div className="hero-actions">
+              <Link href="/stock" className="btn btn-accent btn-lg">Voir toutes les annonces</Link>
+              <Link href="/contact" className="btn btn-ghost btn-lg">Nous contacter</Link>
+            </div>
           </div>
         </div>
+        <div className="hero-stats">
+          {[
+            [String(available.length), "En stock"],
+            ["3 mois",  "Garantie"],
+            ["CT OK",   "Contrôle"],
+            ["3/4×",    "Paiement"],
+          ].map(([v, l]) => (
+            <div key={l} className="hero-stat">
+              <div className="hero-stat-v">{v}</div>
+              <div className="hero-stat-l">{l}</div>
+            </div>
+          ))}
+        </div>
       </section>
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">Nos dernières arrivées</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {latestCars.map((car) => (
-              <div key={car.id} className="bg-white border rounded-xl shadow-sm hover:shadow-md p-6 text-center">
-                <div className="h-64 bg-gray-200 rounded-lg overflow-hidden mx-auto mb-4">
-                  <img src={car.images[0]} alt={car.title} className="w-full h-full object-cover"/>
-                </div>
-                <h3 className="font-bold text-xl mb-2">{car.title}</h3>
-                <p className="text-3xl font-black text-green-600">{car.price.toLocaleString()}€</p>
-                <p className="text-sm text-gray-600 mt-2">{car.year} • {car.km.toLocaleString()}km • {car.fuel}</p>
-                <span className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm mt-4">{car.budgetTag}</span>
-              </div>
-            ))}
+
+      <div className="promise-strip">
+        <div className="container promise-inner">
+          {[
+            ["🛡️","Garantie 3 mois","Sur chaque véhicule vendu"],
+            ["✅","CT à jour","Livré contrôle technique OK"],
+            ["💳","Paiement facile","3 ou 4 fois sans frais"],
+            ["📋","Historique complet","Carnet d'entretien fourni"],
+            ["📍","Bondues, Nord","2 Allée de la Mannée"],
+          ].map(([icon, title, sub]) => (
+            <div key={title as string} className="promise-item">
+              <span className="promise-icon">{icon}</span>
+              <div className="promise-text"><strong>{title}</strong><span>{sub}</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <section className="section section-dark">
+        <div className="container">
+          <div className="section-head">
+            <p className="section-eyebrow">Stock · Mis à jour quotidiennement</p>
+            <h2 className="section-title">Nos dernières occasions</h2>
+            <p className="section-sub">{available.length} véhicule{available.length !== 1 ? "s" : ""} disponible{available.length !== 1 ? "s" : ""}</p>
+          </div>
+          <div className="cars-grid">
+            {latest.map((car) => <CarCard key={car.id} car={car} />)}
+          </div>
+          <div style={{textAlign:"center",marginTop:"36px"}}>
+            <Link href="/stock" className="btn btn-accent btn-lg">Consulter toutes les annonces →</Link>
           </div>
         </div>
       </section>
