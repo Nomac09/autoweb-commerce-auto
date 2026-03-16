@@ -78,8 +78,36 @@ function parseLocally(text: string): Record<string, any> {
   // Year: 4-digit number between 1990-2030
   const ym = text.match(/\b(19[9]\d|20[0-3]\d)\b/);
   if (ym) result.year = parseInt(ym[1]);
-  // Model: if text contains no price/km patterns, treat as model name
-  if (!text.match(/\d{4,}\s*km/i) && !text.match(/\d{3,}\s*€/) && text.length < 60) {
+  // Fuel: detect fuel words explicitly BEFORE title detection
+  const fuelWords: Record<string,string> = {
+    essence:"Essence", petrol:"Essence", gasoline:"Essence",
+    diesel:"Diesel", gazole:"Diesel",
+    hybride:"Hybride", hybrid:"Hybride",
+    "électrique":"Électrique", electrique:"Électrique", electric:"Électrique",
+  };
+  const lowerText = text.toLowerCase().trim();
+  // Check if entire message is just a fuel word
+  if (fuelWords[lowerText]) {
+    result.fuel = fuelWords[lowerText];
+    return result; // Don't treat as title
+  }
+  // Check if message contains "carburant [fuel]" pattern
+  const carburantMatch = text.match(/carburant\s+([a-zA-Zé]+)/i);
+  if (carburantMatch) {
+    const fw = carburantMatch[1].toLowerCase();
+    if (fuelWords[fw]) result.fuel = fuelWords[fw];
+    return result;
+  }
+  // Check for fuel word anywhere in text
+  for (const [word, fuelVal] of Object.entries(fuelWords)) {
+    if (new RegExp(`\\b${word}\\b`, "i").test(text)) {
+      result.fuel = fuelVal;
+      break;
+    }
+  }
+  // Model: only if text has no numbers AND no fuel words AND looks like a car name
+  const hasFuelWord = Object.keys(fuelWords).some(w => new RegExp(`\\b${w}\\b`, "i").test(text));
+  if (!text.match(/\d{4,}\s*km/i) && !text.match(/\d{3,}\s*€/) && !hasFuelWord && text.length < 60) {
     result.title = text.trim();
   }
   return result;
@@ -335,7 +363,7 @@ export async function POST(req: NextRequest) {
     if (!data.price)         missing.push("💰 prix");
     if (data.km == null)     missing.push("📍 kilométrage");
     if (!data.title)         missing.push("🚗 modèle");
-    if (!data.fuel)          missing.push("⛽ carburant");
+    // fuel optional — can be set after publish
 
     if (missing.length > 0) {
       return twiml(
