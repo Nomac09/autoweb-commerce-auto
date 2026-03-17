@@ -339,21 +339,24 @@ export async function POST(req: NextRequest) {
 
   // ── PHOTOS ───────────────────────────────────────────────
   if (nMedia > 0) {
-    const uploaded: string[] = [];
+    for (let i = 0; i < nMedia; i++) {
+      const type = form.get(`MediaContentType${i}`)?.toString() ?? "";
+      if (type.includes("pdf")) return twiml(`⚠️ Envoyez les photos en *image*, pas en PDF.`);
+    }
+    const tasks: Promise<string | null>[] = [];
     for (let i = 0; i < nMedia; i++) {
       const url  = form.get(`MediaUrl${i}`)?.toString() ?? "";
       const type = form.get(`MediaContentType${i}`)?.toString() ?? "";
-      if (type.includes("pdf")) {
-        return twiml(`⚠️ Envoyez les photos en *image*, pas en PDF.`);
-      }
       if (!type.startsWith("image/")) continue;
-      const buf = await fetchTwilioMedia(url);
-      const pub = await uploadPhoto(buf, `${Date.now()}-${i}.jpg`);
-      if (pub) uploaded.push(pub);
+      const idx = String(photos.length + i).padStart(4, "0");
+      const filename = `${Date.now()}-${idx}-${i}.jpg`;
+      tasks.push(fetchTwilioMedia(url).then(buf => uploadPhoto(buf, filename)));
     }
+    const results = await Promise.all(tasks);
+    const uploaded = results.filter((u): u is string => u !== null);
     photos = [...photos, ...uploaded];
     await saveSession(from, photos, data);
-    return twiml(`📸 *+${uploaded.length} photo(s)* → total: *${photos.length}*\n\nEnvoyez d'autres photos ou les détails.`);
+    return twiml(`📸 *+${uploaded.length} photo(s)* → total: *${photos.length}*nnEnvoyez d'autres photos ou les détails.`);
   }
 
   // ── PUBLISH ──────────────────────────────────────────────
