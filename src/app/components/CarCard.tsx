@@ -6,7 +6,8 @@ export default function CarCard({ car }: { car: any }) {
       <div className="car-card-img">
         {car.images?.[0] ? <img src={car.images[0]} alt={car.title} loading="lazy" /> : <div className="car-no-img">🚗</div>}
         <div className="car-badge-wrap">
-          {isReserved?<span className="car-badge badge-reserved">Réservé</span>:isSold?<span className="car-badge badge-sold">Vendu</span>:<span className="car-badge badge-budget">{car.budget_tag}</span>}
+          {isReserved && <span className="car-badge badge-reserved">Réservé</span>}
+          {isSold && <span className="car-badge badge-sold">Vendu</span>}
         </div>
       </div>
       <div className="car-card-body">
