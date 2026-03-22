@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import Gallery from "../../components/Gallery";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 async function getCar(id: string) {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -12,11 +12,6 @@ async function getCar(id: string) {
   return data;
 }
 
-export async function generateStaticParams() {
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-  const { data } = await sb.from("cars").select("id");
-  return (data ?? []).map((r: any) => ({ id: r.id }));
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
