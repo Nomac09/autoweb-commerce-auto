@@ -98,8 +98,8 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
                 <Link href={`/contact?voiture=${encodeURIComponent(car.title)}&prix=${car.price}`} className="btn btn-accent btn-full btn-lg">
                   🎯 Réserver ce véhicule
                 </Link>
-                <a href="https://wa.me/33698765432" className="btn btn-ghost btn-full">💬 WhatsApp — Réponse rapide</a>
-                <a href="tel:0698765432" className="btn btn-ghost btn-full">📞 06 98 76 54 32</a>
+                <a href="https://wa.me/33783809694" className="btn btn-ghost btn-full">💬 WhatsApp — Réponse rapide</a>
+                <a href="tel:0783809694" className="btn btn-ghost btn-full">📞 06 98 76 54 32</a>
               </div>
             ) : (
               <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "20px", textAlign: "center", color: "var(--gray)" }}>

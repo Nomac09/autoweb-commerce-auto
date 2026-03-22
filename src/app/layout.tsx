@@ -41,9 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
             <div className="footer-links">
-              <a href="tel:0698765432" className="footer-link">📞 06 98 76 54 32</a>
-              <a href="https://wa.me/33698765432" className="footer-link">💬 WhatsApp</a>
-              <a href="mailto:contact@autowebcommerce.fr" className="footer-link">✉ contact@autowebcommerce.fr</a>
+              <a href="tel:0783809694" className="footer-link">📞 07 83 80 96 94</a>
+              <a href="https://wa.me/33783809694" className="footer-link">💬 WhatsApp</a>
+              <a href="mailto:autowebcommercesas@gmail.com" className="footer-link">✉ autowebcommercesas@gmail.com</a>
             </div>
             <p className="footer-addr">2 Allée de la Mannée · 59910 Bondues</p>
           </div>

@@ -14,7 +14,7 @@ export default function CarCard({ car }: { car: any }) {
         <p className="car-title">{car.title}</p>
         <p className="car-specs"><span>{car.year}</span>&nbsp;·&nbsp;<span>{car.km?.toLocaleString("fr-FR")} km</span>{car.power_din?<>&nbsp;·&nbsp;<span>{car.power_din} ch</span></>:null}</p>
         <div className="car-features">{(car.features??[]).slice(0,3).map((f:string)=><span key={f} className="car-feat">{f}</span>)}</div>
-        <p className="car-price">{car.price?.toLocaleString("fr-FR")} €<span className="car-price-ttc">TTC</span></p>
+        <p className="car-price">{car.price?.toLocaleString("fr-FR")} € <span className="car-price-ttc">TTC</span></p>
       </div>
       <div className="car-card-footer">
         <div className="btn btn-accent btn-full" style={{fontSize:"12px",padding:"10px"}}>Voir ce véhicule →</div>
