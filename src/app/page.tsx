@@ -11,7 +11,7 @@ async function getData() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
   const [{ data: cars }, { count }] = await Promise.all([
-    sb.from("cars").select("*").eq("status", "available").order("added_at", { ascending: false }).limit(8),
+    sb.from("cars").select("*").eq("status", "available").order("sort_order", { ascending: true, nullsFirst: false }).order("added_at", { ascending: false }).limit(8),
     sb.from("cars").select("*", { count: "exact", head: true }).eq("status", "available"),
   ]);
   return { cars: cars ?? [], count: count ?? 0 };

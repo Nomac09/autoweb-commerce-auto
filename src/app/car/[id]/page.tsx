@@ -64,7 +64,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
             <div className="detail-status">
               <span className="status-dot" style={{ background: statusColor }} />
               <span style={{ color: statusColor }}>{statusLabel}</span>
-              <span style={{ color: "var(--gray)", marginLeft: "8px" }}>{car.budget_tag}</span>
+              
             </div>
             <p className="detail-price">
               {car.price?.toLocaleString("fr-FR")} €
