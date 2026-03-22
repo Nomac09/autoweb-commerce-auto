@@ -7,7 +7,7 @@ export default function StockPage() {
   const [all,setAll]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState(""); const [budget,setBudget]=useState(""); const [fuel,setFuel]=useState(""); const [gearbox,setGearbox]=useState(""); const [status,setStatus]=useState("all");
-  useEffect(()=>{ sb.from("cars").select("*").order("added_at",{ascending:false}).then(({data})=>{setAll(data??[]);setLoading(false);}); },[]);
+  useEffect(()=>{ sb.from("cars").select("*").order("sort_order",{ascending:true,nullsFirst:false}).order("added_at",{ascending:false}).then(({data})=>{setAll(data??[]);setLoading(false);}); },[]);
   const filtered=useMemo(()=>all.filter(c=>{
     if(status!=="all"&&c.status!==status)return false;
     if(budget&&c.budget_tag!==budget)return false;
