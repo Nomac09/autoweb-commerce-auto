@@ -412,7 +412,7 @@ export async function POST(req: NextRequest) {
     if (error) return twiml(`❌ Erreur: ${error.message}\n\nRetapez *"publier"* pour réessayer.`);
 
     await deleteSession(from);
-    const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autoweb-commerce-auto.vercel.app";
+    const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.autoweb-commerce.fr";
 
     return twiml(
       `🎉 *Voiture publiée avec succès !*\n\n` +
