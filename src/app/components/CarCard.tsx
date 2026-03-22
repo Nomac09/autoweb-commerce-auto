@@ -25,16 +25,14 @@ export default function CarCard({ car }: { car: any }) {
         )}
         <div className="car-badge-wrap">
           {isReserved && (
-            <>
-              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.45)",pointerEvents:"none",zIndex:1}}/>
-              <div style={{position:"absolute",top:0,left:0,right:0,background:"rgba(245,158,11,.95)",color:"#000",fontWeight:900,fontSize:"13px",letterSpacing:".14em",padding:"8px 0",textAlign:"center",zIndex:2,pointerEvents:"none"}}>🟡 RÉSERVÉ</div>
-            </>
+            <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",zIndex:2}}>
+              <div style={{color:"#f59e0b",border:"2px solid #f59e0b",fontWeight:900,fontSize:"16px",letterSpacing:".14em",padding:"8px 24px",fontFamily:"var(--font-head)"}}>RÉSERVÉ</div>
+            </div>
           )}
           {isSold && (
-            <>
-              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",pointerEvents:"none",zIndex:1}}/>
-              <div style={{position:"absolute",top:0,left:0,right:0,background:"rgba(60,60,60,.97)",color:"#fff",fontWeight:900,fontSize:"13px",letterSpacing:".14em",padding:"8px 0",textAlign:"center",zIndex:2,pointerEvents:"none"}}>❌ VENDU</div>
-            </>
+            <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",zIndex:2}}>
+              <div style={{color:"#888",border:"2px solid #888",fontWeight:900,fontSize:"16px",letterSpacing:".14em",padding:"8px 24px",fontFamily:"var(--font-head)"}}>VENDU</div>
+            </div>
           )}
         </div>
       </div>
