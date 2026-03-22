@@ -6,7 +6,7 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_
 export default function StockPage() {
   const [all,setAll]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
-  const [search,setSearch]=useState(""); const [budget,setBudget]=useState(""); const [fuel,setFuel]=useState(""); const [gearbox,setGearbox]=useState(""); const [status,setStatus]=useState("available");
+  const [search,setSearch]=useState(""); const [budget,setBudget]=useState(""); const [fuel,setFuel]=useState(""); const [gearbox,setGearbox]=useState(""); const [status,setStatus]=useState("all");
   useEffect(()=>{ sb.from("cars").select("*").order("added_at",{ascending:false}).then(({data})=>{setAll(data??[]);setLoading(false);}); },[]);
   const filtered=useMemo(()=>all.filter(c=>{
     if(status!=="all"&&c.status!==status)return false;
