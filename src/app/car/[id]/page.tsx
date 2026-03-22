@@ -94,7 +94,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
                   🎯 Réserver ce véhicule
                 </Link>
                 <a href="https://wa.me/33783809694" className="btn btn-ghost btn-full">💬 WhatsApp — Réponse rapide</a>
-                <a href="tel:0783809694" className="btn btn-ghost btn-full">📞 06 98 76 54 32</a>
+                <a href="tel:0783809694" className="btn btn-ghost btn-full">📞 07 83 80 96 94</a>
               </div>
             ) : (
               <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "20px", textAlign: "center", color: "var(--gray)" }}>
