@@ -21,9 +21,7 @@ export default function Gallery({ images, title }: { images: string[]; title: st
 
   if (!images.length) {
     return (
-      <div style={{ background: "var(--bg3)", borderRadius: "var(--radius)", aspectRatio: "4/3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "64px" }}>
-        🚗
-      </div>
+      <img src="https://ejohspmzhujmjnnnhtyj.supabase.co/storage/v1/object/public/cars/photos/images-1.png" alt="Photo à venir" style={{width:"100%",aspectRatio:"4/3",objectFit:"contain",background:"#111",borderRadius:"var(--radius)",padding:"24px"}} />
     );
   }
 
