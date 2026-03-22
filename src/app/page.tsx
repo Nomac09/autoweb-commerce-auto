@@ -20,12 +20,10 @@ async function getData() {
 export default async function Home() {
   const { cars, count } = await getData();
   // Use first 5 cars with photos for carousel
-  const carouselCars = cars.filter((c: any) => c.images?.length > 0).slice(0, 5);
-
   return (
     <>
       {/* ── Full-width carousel ── */}
-      <HeroCarousel cars={carouselCars} />
+      <HeroCarousel />
 
       {/* ── Green accent bar ── */}
       <div style={{ background: "var(--accent)", padding: "14px 24px", textAlign: "center" }}>
