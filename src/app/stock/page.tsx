@@ -22,11 +22,11 @@ export default function StockPage() {
     <section className="section"><div className="container">
       <div className="section-head"><p className="section-eyebrow">Bondues · Livraison possible</p><h1 className="section-title">Nos annonces</h1><p className="section-sub">Stock mis à jour en temps réel</p></div>
       <div className="filters-wrap">
-        <input className="filter-input" placeholder="🔍  Rechercher…" value={search} onChange={e=>setSearch(e.target.value)} />
-        <select className="filter-select" value={budget} onChange={e=>setBudget(e.target.value)}><option value="">💰  Tous budgets</option><option value="< 2000 €">&lt; 2 000 €</option><option value="2000-4000 €">2 000 – 4 000 €</option><option value="≥ 4000 €">≥ 4 000 €</option></select>
-        <select className="filter-select" value={fuel} onChange={e=>setFuel(e.target.value)}><option value="">⛽  Carburant</option><option value="Essence">Essence</option><option value="Diesel">Diesel</option><option value="Hybride">Hybride</option><option value="Électrique">Électrique</option></select>
-        <select className="filter-select" value={gearbox} onChange={e=>setGearbox(e.target.value)}><option value="">🕹  Boîte</option><option value="Manuelle">Manuelle</option><option value="Automatique">Automatique</option></select>
-        <select className="filter-select" value={status} onChange={e=>setStatus(e.target.value)}><option value="available">Disponibles</option><option value="reserved">Réservées</option><option value="all">Tous statuts</option></select>
+        <input className="filter-input" placeholder="Rechercher un véhicule…" value={search} onChange={e=>setSearch(e.target.value)} />
+        <select className="filter-select" value={budget} onChange={e=>setBudget(e.target.value)}><option value="">Budget</option><option value="< 2000 €">&lt; 2 000 €</option><option value="2000-4000 €">2 000 – 4 000 €</option><option value="≥ 4000 €">≥ 4 000 €</option></select>
+        <select className="filter-select" value={fuel} onChange={e=>setFuel(e.target.value)}><option value="">Énergie</option><option value="Essence">Essence</option><option value="Diesel">Diesel</option><option value="Hybride">Hybride</option><option value="Électrique">Électrique</option></select>
+        <select className="filter-select" value={gearbox} onChange={e=>setGearbox(e.target.value)}><option value="">Transmission</option><option value="Manuelle">Manuelle</option><option value="Automatique">Automatique</option></select>
+        <select className="filter-select" value={status} onChange={e=>setStatus(e.target.value)}><option value="all">Tous statuts</option><option value="available">Disponible</option><option value="reserved">Réservé</option><option value="sold">Vendu</option></select>
         <span className="filters-count">{loading?"…":`${filtered.length} résultat${filtered.length!==1?"s":""}`}</span>
         {hasFilters&&<button className="btn-reset" onClick={reset}>✕ Effacer</button>}
       </div>
