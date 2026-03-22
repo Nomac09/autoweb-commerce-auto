@@ -23,8 +23,7 @@ export default function CarCard({ car }: { car: any }) {
             <span style={{fontSize:"11px",color:"#444",fontWeight:600,letterSpacing:".08em",textTransform:"uppercase"}}>Photo à venir</span>
           </div>
         )}
-        <div className="car-badge-wrap">
-          {isReserved && (
+        {isReserved && (
             <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",zIndex:2}}>
               <div style={{color:"#f59e0b",border:"2px solid #f59e0b",fontWeight:900,fontSize:"16px",letterSpacing:".14em",padding:"8px 24px",fontFamily:"var(--font-head)"}}>RÉSERVÉ</div>
             </div>
@@ -34,7 +33,6 @@ export default function CarCard({ car }: { car: any }) {
               <div style={{color:"#888",border:"2px solid #888",fontWeight:900,fontSize:"16px",letterSpacing:".14em",padding:"8px 24px",fontFamily:"var(--font-head)"}}>VENDU</div>
             </div>
           )}
-        </div>
       </div>
       <div className="car-card-body">
         <p className="car-make">{car.fuel} · {car.gearbox}{car.color?` · ${car.color}`:""}</p>
