@@ -288,11 +288,12 @@ export async function POST(req: NextRequest) {
     await saveSession(from, [], {});
     return twiml(
       `🚗 *Nouvelle voiture — Session ouverte*\n\n` +
-      `Envoyez dans l'ordre:\n` +
-      `1️⃣ Photos de la voiture (une par une)\n` +
-      `2️⃣ Les détails en un message:\n\n` +
+      `Envoyez dans l'ordre:\n\n` +
+      `1️⃣ *Photos* — max 5 par envoi, attendez la confirmation avant d'envoyer le groupe suivant\n\n` +
+      `2️⃣ *Détails en un seul message* (tout sur une ligne):\n` +
+      `_Modèle Année, Prix€, KMkm, Carburant, Boîte, Couleur_\n\n` +
       `Exemple:\n` +
-      `_Citroën C4 2011, 4990€, 154000km, manuelle, noir, essence_\n\n` +
+      `_Mini Cooper 2019, 13500€, 80000km, Essence, Automatique, Beige_\n\n` +
       `Tapez *"publier"* pour mettre en ligne.\n` +
       `Tapez *"recap"* pour voir l'état actuel.\n` +
       `Tapez *"annuler"* pour tout effacer.`
@@ -348,8 +349,9 @@ export async function POST(req: NextRequest) {
       const url  = form.get(`MediaUrl${i}`)?.toString() ?? "";
       const type = form.get(`MediaContentType${i}`)?.toString() ?? "";
       if (!type.startsWith("image/")) continue;
-      const idx = String(photos.length + i).padStart(4, "0");
-      const filename = `${Date.now()}-${idx}-${i}.jpg`;
+      const photoNum = photos.length + tasks.length + 1;
+      const idx = String(photoNum).padStart(3, "0");
+      const filename = `photo-${idx}-${Date.now()}.jpg`;
       tasks.push(fetchTwilioMedia(url).then(buf => uploadPhoto(buf, filename)));
     }
     const results = await Promise.all(tasks);
