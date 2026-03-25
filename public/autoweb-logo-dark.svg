@@ -1,0 +1,5 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="4" width="6" height="52" rx="3" fill="#9aff3a"/>
+  <text x="16" y="28" font-family="'Arial Black', Arial, sans-serif" font-size="22" font-weight="900" fill="#0a0a0a" letter-spacing="1">AUTO</text>
+  <text x="16" y="50" font-family="'Arial Black', Arial, sans-serif" font-size="22" font-weight="900" fill="#1a6600" letter-spacing="1">WEB</text>
+</svg>

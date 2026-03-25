@@ -77,6 +77,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
         <link rel="canonical" href="https://www.autoweb-commerce.fr" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.svg" />
       </head>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -107,8 +109,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="navbar">
           <div className="container nav-inner">
             <Link href="/" className="nav-logo">
-              <span className="nav-logo-icon">A</span>
-              <span className="nav-logo-text">AUTOWEB</span>
+              <img src="/autoweb-logo.svg" alt="AUTOWEB COMMERCE" height="40" style={{height:"40px",width:"auto"}} />
             </Link>
             <nav className="nav-links">
               <Link href="/" className="nav-link">Accueil</Link>
