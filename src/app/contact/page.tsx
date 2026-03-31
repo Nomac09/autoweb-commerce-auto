@@ -86,7 +86,7 @@ export default function ContactPage() {
               ["Téléphone", "07 83 80 96 94",            "tel:0783809694"],
               ["WhatsApp",  "07 83 80 96 94",            "https://wa.me/33783809694"],
               ["Email",     "autowebcommercesas@gmail.com", "mailto:autowebcommercesas@gmail.com"],
-              ["Site",      "www.souqify.fr",             "https://souqify.fr"],
+              ["Site",      "www.autoweb-commerce.fr",             "https://souqify.fr"],
               ["Adresse",   "2 Allée de la Mannée · 59910 Bondues", null],
               ["SIREN",     "SAS 100148469",              null],
             ] as [string, string, string | null][]).map(([label, value, href]) => (
