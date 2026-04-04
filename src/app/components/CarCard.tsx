@@ -2,7 +2,7 @@ import Link from "next/link";
 export default function CarCard({ car }: { car: any }) {
   const isSold=car.status==="sold", isReserved=car.status==="reserved";
   return (
-    <Link href={isSold?"#":`/car/${car.id}`} className="car-card" style={isSold?{pointerEvents:"none",opacity:.5}:{}}>
+    <Link href={`/car/${car.id}`} className="car-card">
       <div className="car-card-img">
         {car.images?.[0] ? <img src={car.images[0]} alt={car.title} loading="lazy" /> : (<img src="https://ejohspmzhujmjnnnhtyj.supabase.co/storage/v1/object/public/cars/photos/images-1.png" alt="Photo à venir" style={{width:"100%",height:"100%",objectFit:"contain",background:"#111",padding:"16px"}} />)}
         {isReserved && (
