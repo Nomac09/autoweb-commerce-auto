@@ -4,15 +4,15 @@ import Link from "next/link";
 
 const SLIDES = [
   {
-    img: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1600&q=80&fit=crop",
+    img: "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=1600&q=80&fit=crop",
     label: "Sélection premium",
   },
   {
-    img: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=1600&q=80&fit=crop",
+    img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=1600&q=80&fit=crop",
     label: "CT OK · Révisé",
   },
   {
-    img: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1600&q=80&fit=crop",
+    img: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1600&q=80&fit=crop",
     label: "Garantie 3 mois",
   },
 ];
