@@ -14,7 +14,7 @@ export default function StockPage() {
   const [search, setSearch] = useState("");
   const [fuel, setFuel] = useState("");
   const [gearbox, setGearbox] = useState("");
-  const [status, setStatus] = useState("available");
+  const [status, setStatus] = useState("all");
 
   useEffect(() => {
     sb.from("cars").select("*")
@@ -32,7 +32,7 @@ export default function StockPage() {
   }), [all, search, fuel, gearbox, status]);
 
   const reset = () => { setSearch(""); setFuel(""); setGearbox(""); setStatus("available"); };
-  const hasFilters = !!(search || fuel || gearbox || status !== "available");
+  const hasFilters = !!(search || fuel || gearbox || status !== "all");
 
   return (
     <section className="section">
