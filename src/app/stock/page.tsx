@@ -69,7 +69,7 @@ export default function StockPage() {
             <option value="sold">Vendu</option>
           </select>
           <span className="filters-count">
-            {loading ? "…" : \`\${filtered.length} résultat\${filtered.length !== 1 ? "s" : ""}\`}
+            {loading ? "…" : `${filtered.length} résultat${filtered.length !== 1 ? "s" : ""}`}
           </span>
           {hasFilters && <button className="btn-reset" onClick={reset}>✕ Effacer</button>}
         </div>
