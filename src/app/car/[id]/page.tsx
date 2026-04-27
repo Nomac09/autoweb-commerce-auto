@@ -12,13 +12,12 @@ async function getCar(id: string) {
   return data;
 }
 
-
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const car = await getCar(id);
-  if (!car) return { title: "Voiture non trouvée" };
+  if (!car) return { title: "Voiture non trouvee" };
   return {
-    title: `${car.title} — ${car.price?.toLocaleString("fr-FR")} € TTC | AUTOWEB`,
+    title: car.title + " — " + car.price?.toLocaleString("fr-FR") + " € TTC",
     description: car.description,
   };
 }
@@ -29,46 +28,44 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
   if (!car) notFound();
 
   const isAvailable = car.status === "available";
-  const statusColor = car.status === "available" ? "var(--accent)" : car.status === "reserved" ? "#f59e0b" : "var(--gray)";
-  const statusLabel = car.status === "available" ? "Disponible" : car.status === "reserved" ? "Réservé" : "Vendu";
-  const images: string[]     = car.images     ?? [];
-  const features: string[]   = car.features   ?? [];
+  const statusColor = car.status === "available" ? "#4ade80" : car.status === "reserved" ? "#d4a843" : "var(--silver2)";
+  const statusLabel = car.status === "available" ? "Disponible" : car.status === "reserved" ? "Reserve" : "Vendu";
+  const images: string[] = car.images ?? [];
+  const features: string[] = car.features ?? [];
   const equipments: string[] = car.equipments ?? [];
 
   const specs = [
-    ["Année",            String(car.year)],
-    ["Kilométrage",      `${car.km?.toLocaleString("fr-FR")} km`],
-    ["Carburant",        car.fuel],
-    ["Boîte",            car.gearbox],
-    car.power_din    ? ["Puissance",         `${car.power_din} ch`]         : null,
-    car.power_fiscal ? ["Puissance fiscale", `${car.power_fiscal} cv`]      : null,
-    car.doors        ? ["Portes",            String(car.doors)]              : null,
-    car.co2          ? ["CO₂",              `${car.co2} g/km`]              : null,
-    car.color        ? ["Couleur",           car.color]                      : null,
-    car.guarantee    ? ["Garantie",          car.guarantee]                  : null,
+    ["Annee", String(car.year)],
+    ["Kilometrage", car.km?.toLocaleString("fr-FR") + " km"],
+    ["Carburant", car.fuel],
+    ["Boite", car.gearbox],
+    car.power_din    ? ["Puissance",         car.power_din + " ch"]    : null,
+    car.power_fiscal ? ["Puissance fiscale", car.power_fiscal + " cv"] : null,
+    car.doors        ? ["Portes",            String(car.doors)]         : null,
+    car.co2          ? ["CO2",               car.co2 + " g/km"]        : null,
+    car.color        ? ["Couleur",           car.color]                 : null,
+    car.guarantee    ? ["Garantie",          car.guarantee]             : null,
   ].filter(Boolean) as [string, string][];
 
   return (
     <section className="section">
       <div className="container">
         <Link href="/stock" className="back-link">← Retour aux annonces</Link>
-        <div className="detail-wrap">
 
-          {/* Gallery with lightbox */}
+        <div className="detail-wrap">
           <Gallery images={images} title={car.title} />
 
-          {/* Info */}
           <div>
-            <p className="detail-brand">{car.fuel} · {car.gearbox}{car.color ? ` · ${car.color}` : ""}</p>
+            <p className="detail-brand">{car.fuel}{car.gearbox ? " · " + car.gearbox : ""}{car.color ? " · " + car.color : ""}</p>
             <h1 className="detail-title">{car.title}</h1>
             <div className="detail-status">
               <span className="status-dot" style={{ background: statusColor }} />
-              <span style={{ color: statusColor }}>{statusLabel}</span>
-              
+              <span style={{ color: statusColor, fontSize: "11px", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" }}>{statusLabel}</span>
             </div>
+
             <p className="detail-price">
               {car.price?.toLocaleString("fr-FR")} €
-              <span style={{ fontSize: "16px", color: "var(--gray)", fontWeight: 400, marginLeft: "8px" }}>TTC</span>
+              <span style={{ fontSize: "14px", color: "var(--silver2)", fontWeight: 400, marginLeft: "8px", fontFamily: "var(--font-body)" }}>TTC</span>
             </p>
 
             <div className="detail-specs-grid">
@@ -90,31 +87,28 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
 
             {isAvailable ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Link href={`/contact?voiture=${encodeURIComponent(car.title)}&prix=${car.price}`} className="btn btn-accent btn-full btn-lg">
-                  🎯 Réserver ce véhicule
+                <Link href={"/contact?voiture=" + encodeURIComponent(car.title) + "&prix=" + car.price} className="btn btn-accent btn-full btn-lg">
+                  Reserver ce vehicule
                 </Link>
-                <a href="https://wa.me/33783809694" className="btn btn-ghost btn-full">💬 WhatsApp — Réponse rapide</a>
-                <a href="tel:0783809694" className="btn btn-ghost btn-full">📞 07 83 80 96 94</a>
+                <a href="https://wa.me/33783809694" className="btn btn-ghost btn-full">WhatsApp — Reponse rapide</a>
+                <a href="tel:0783809694" className="btn btn-ghost btn-full">07 83 80 96 94</a>
               </div>
             ) : (
-              <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "20px", textAlign: "center", color: "var(--gray)" }}>
-                Ce véhicule n&apos;est plus disponible.{" "}
-                <Link href="/stock" style={{ color: "var(--accent)", fontWeight: 600 }}>Voir le stock →</Link>
+              <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "24px", textAlign: "center", color: "var(--silver2)" }}>
+                Ce vehicule nest plus disponible.{" "}
+                <Link href="/stock" style={{ color: "var(--white)", fontWeight: 600 }}>Voir le stock →</Link>
               </div>
             )}
           </div>
         </div>
 
-        {/* Equipment section */}
         {equipments.length > 0 && (
-          <div style={{ marginTop: "48px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "32px" }}>
-            <h2 style={{ fontFamily: "var(--font-head)", fontSize: "20px", fontWeight: 700, textTransform: "uppercase", color: "var(--white)", marginBottom: "20px", letterSpacing: ".04em" }}>
-              Équipements et options
-            </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: "10px" }}>
+          <div style={{ marginTop: "64px", borderTop: "1px solid var(--border)", paddingTop: "48px" }}>
+            <p className="section-eyebrow" style={{ marginBottom: "24px" }}>Equipements et options</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "12px" }}>
               {equipments.map((eq: string) => (
-                <div key={eq} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "rgba(255,255,255,.8)" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: 700 }}>✓</span> {eq}
+                <div key={eq} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--silver)" }}>
+                  <span style={{ color: "var(--gold)", fontSize: "10px" }}>◆</span> {eq}
                 </div>
               ))}
             </div>
