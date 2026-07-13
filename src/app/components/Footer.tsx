@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { site } from "@/lib/site";
 
 const navLinks = [
   { label: "Le stock", href: "/stock" },
@@ -16,13 +17,27 @@ function ColHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-muted text-[0.65rem] uppercase tracking-widest">
         {label}
       </span>
-      <span className="text-bone text-sm">{value}</span>
+      {href ? (
+        <a href={href} className="text-bone text-sm hover:text-oxblood transition-colors">
+          {value}
+        </a>
+      ) : (
+        <span className="text-bone text-sm">{value}</span>
+      )}
     </div>
   );
 }
@@ -36,7 +51,7 @@ export default function Footer() {
           <div>
             <p className="font-display text-xl text-bone mb-3">AUTOWEB</p>
             <p className="text-muted text-sm leading-relaxed">
-              Voitures d&apos;occasion sélectionnées à Lille.
+              Voitures d&apos;occasion contrôlées à {site.city}, près de {site.region}.
             </p>
           </div>
 
@@ -60,9 +75,13 @@ export default function Footer() {
           <div>
             <ColHeader>Contact</ColHeader>
             <div className="flex flex-col gap-4">
-              <InfoRow label="Adresse" value="Bondues, Lille" />
-              <InfoRow label="Téléphone" value="+33 X XX XX XX XX" />
-              <InfoRow label="Email" value="contact@autoweb-commerce.fr" />
+              <InfoRow
+                label="Adresse"
+                value={`${site.address.street}, ${site.address.zip} ${site.address.city}`}
+                href={site.mapsHref}
+              />
+              <InfoRow label="Téléphone" value={site.phoneDisplay} href={site.phoneHref} />
+              <InfoRow label="Email" value={site.email} href={`mailto:${site.email}`} />
             </div>
           </div>
 
@@ -70,8 +89,9 @@ export default function Footer() {
           <div>
             <ColHeader>Horaires</ColHeader>
             <div className="flex flex-col gap-4">
-              <InfoRow label="Semaine" value="Lun–Sam · 9h–19h" />
-              <InfoRow label="Weekend" value="Dim · fermé" />
+              {site.hours.map((h) => (
+                <InfoRow key={h.days} label={h.days} value={h.time} />
+              ))}
             </div>
           </div>
         </div>
@@ -79,9 +99,9 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-hairline mt-12 pt-6 flex flex-col md:flex-row justify-between gap-2">
           <p className="text-muted text-xs">
-            © 2026 AUTOWEB COMMERCE SAS · SIREN placeholder
+            © {new Date().getFullYear()} {site.legalName} · SIREN {site.siren}
           </p>
-          <p className="text-muted text-xs">Site conçu en interne</p>
+          <p className="text-muted text-xs">{site.address.city}, {site.region}</p>
         </div>
       </div>
     </footer>
