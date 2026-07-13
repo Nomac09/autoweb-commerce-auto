@@ -20,4 +20,14 @@ export const site = {
     { days: "Du lundi au samedi", time: "9h à 19h" },
     { days: "Dimanche", time: "Sur rendez-vous" },
   ],
+  legal: {
+    form: "SAS",
+    director: "Nasim Sawalma",
+    rcs: "RCS Lille Métropole",
+  },
+  host: {
+    name: "Vercel Inc.",
+    address: "340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis",
+    site: "https://vercel.com",
+  },
 } as const;
